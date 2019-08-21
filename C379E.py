@@ -2,54 +2,54 @@
 print("Challenge 379 (Easy)")
 
 if __name__ == '__main__':
-    def tax(i):
-        if i < 10000:
-            return 0
-        elif 10000 <= i < 30000:
-            return (i - 10000) * 0.1
-        elif 30000 <= i < 100000:
-            return 2000 + ((i - 30000) * 0.25)
-        elif i >= 100000:
-            return 2000 + (70000 * 0.25) + (i - 100000) * 0.4
+    # This is the hardcoded solution
+    # def tax(i):
+    #     if i < 10000:
+    #         return 0
+    #     elif 10000 <= i < 30000:
+    #         return (i - 10000) * 0.1
+    #     elif 30000 <= i < 100000:
+    #         return 2000 + ((i - 30000) * 0.25)
+    #     elif i >= 100000:
+    #         return 2000 + (70000 * 0.25) + (i - 100000) * 0.4
 
-    def tax_from_file(amount):
-        file = open("tax_brackets", "r").readlines()
-        # TODO: Merge below with the income_caps and tax_rates bits
-        brackets = []
-        for line in file:
-            l = line.replace("\n", "").split(", ")
-            print("l is %s" % str(l))
-            brackets.append(line.replace("\n", "").split(", "))  # Splitting the lines in List[bracket, tax %]
-        for a in brackets:
-            i = brackets.index(a)
-            if brackets[i][0] != "---":
-                brackets[i] = (int(brackets[i][0]), float(brackets[i][1]))
-            else:
-                brackets[i] = (str(brackets[i][0]), float(brackets[i][1]))
+    # This is the solution for reading tax brackets from a file which works whenever the brackets are updated.
+    # This assumes that the pair of income cap and tax rate will be defined as per the spec in the exercise.
+    def tax_from_file(amt: int):
+        print("Checking tax for an amount of " + str(amt))
+        if amt > 0:
+            file = open("tax_brackets", "r").readlines()  # Reading file
+            ics = []  # Income caps
+            trs = []  # Tax rates
+            for line in file:
+                l = line.replace("\n", "").split(", ")
+                try:
+                    ics.append(int(l[0]))
+                except ValueError:
+                    # Giving a default max value of 1 trillion. Using float("inf") messes it up.
+                    ics.append(1000000000000)
+                trs.append(float(l[1]))
 
-        income_caps = []
-        tax_rates = []
-        for bracket in brackets:
-            income_caps.append(bracket[0])
-            tax_rates.append(bracket[1])
+            tax = float(0)
+            # Formula for calculating is (had to write it out on paper first - was very helpful):
+            # tax = (ic[0] - 0)*tr[0] + (ic[1] - ic[0])*tr[1] + ... + (amt - ic[n-1])*tr[n]
+            for ic in ics:
+                if amt > ic:
+                    if ics.index(ic) == 0:  # This assumes that the first cap will always be tax-free
+                        pass
+                    else:
+                        tax = tax + (ic - ics[ics.index(ic) - 1]) * trs[ics.index(ic)]
+                else:  # if amt is bigger than the last income cap specified in the file
+                    tax = tax + (amt - ics[ics.index(ic) - 1]) * trs[ics.index(ic)]
+                    break
+                    # if the loop is not broken, it will lead to wrong results for amount which are smaller
+                    # than at least 1 income cap as it will run this step more than 1 time
 
-        if amount <= income_caps[0]:
-            print("Amount of money taxed is below %d" % income_caps[0])
-            return amount * tax_rates[0]
-        elif income_caps[0] < amount <= income_caps[1]:
-            print("Amount of money taxed is between %d and %d" % (income_caps[0], income_caps[1]))
-            return (income_caps[0] * tax_rates[0]) + (amount - income_caps[0]) * tax_rates[1]
-        elif income_caps[1] < amount <= income_caps[2]:
-            print("Amount of money taxed is between %d and %d" % (income_caps[1], income_caps[2]))
-            return (income_caps[0]) * tax_rates[0] + (income_caps[1] - income_caps[0]) * tax_rates[1] + \
-                   (amount - income_caps[1]) * tax_rates[2]
-        elif income_caps[2] <= amount:
-            print("Amount of money taxed is more than %d" % (income_caps[2]))
-            return (income_caps[0]) * tax_rates[0] + (income_caps[1] - income_caps[0]) * tax_rates[1] + \
-                   (income_caps[2] - income_caps[1]) * tax_rates[2] + (amount - income_caps[2]) * tax_rates[3]
+            return int(tax) # returns a rounded up number
 
-    # while True:
-    #     print("The amount of tax is: " + str(tax(int(input("What amount of money do you want to tax? ")))))
+        else:
+            raise ValueError("You need to provide an amount higher than zero.")
+
 
     print(str(tax_from_file(10000)) + " should be 0")
     print(str(tax_from_file(20000)) + " should be 1000")
